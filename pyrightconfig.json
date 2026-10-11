@@ -1,0 +1,15 @@
+{
+  "include": ["fpv_labs/src"],
+  "exclude": [".pydeps"],
+  "extraPaths": [
+    "fpv_labs/src",
+    ".pydeps/ros",
+    ".pydeps/ros_site",
+    ".pydeps/ardupilot"
+  ],
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "strict",
+  "reportUnknownMemberType": false,
+  "reportUnknownVariableType": false,
+  "pythonPlatform": "Linux"
+}
