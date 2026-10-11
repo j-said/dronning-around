@@ -37,7 +37,7 @@ help: ## показати цю довідку
 	  | awk 'BEGIN{FS = ":.*## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 	@echo "$$HELP_FOOTER"
 
-image: ## зібрати Docker-образ (перший раз ~30–40 хв)
+image: ## зібрати Docker-образ (перший раз ~15–20 хв)
 	@$(LAB) image $(ARGS)
 
 start: ## запустити Gazebo + SITL + micro-ROS agent і дочекатися готовності до arm

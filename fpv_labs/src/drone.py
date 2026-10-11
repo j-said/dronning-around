@@ -1,7 +1,7 @@
 import time
 from collections.abc import Callable
 from enum import Enum, auto
-from typing import Any, TypeAlias
+from typing import Any
 
 import rclpy
 from ardupilot_msgs.msg import Status
@@ -23,11 +23,11 @@ class MissionError(Exception):
     pass
 
 
-Step: TypeAlias = Enum
-Handler: TypeAlias = Callable[["Drone"], Step | None]
-Mission: TypeAlias = dict[Step, Handler]
-Phase: TypeAlias = Callable[[Step, Step], Mission]
-Position: TypeAlias = tuple[float, float, float]
+type Step = Enum
+type Handler = Callable[["Drone"], Step | None]
+type Mission = dict[Step, Handler]
+type Phase = Callable[[Step, Step], Mission]
+type Position = tuple[float, float, float]
 
 
 class Drone(Node):

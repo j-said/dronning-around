@@ -1,7 +1,7 @@
 # Змінні HOST_UID, HOST_GID, RENDER_GID, VIDEO_GID та XAUTHORITY виставляє scripts/lib.sh
 services:
   sim:
-    image: fpv-lab2:humble-harmonic
+    image: fpv-lab2:jazzy-harmonic
     build:
       context: docker
       args:
@@ -16,9 +16,6 @@ services:
       XAUTHORITY: /tmp/.Xauthority
       QT_X11_NO_MITSHM: "1"
       GZ_VERSION: harmonic
-      # OpenGL поверх Vulkan (Zink): зі штатним драйвером iris вікно Gazebo
-      # падає в Mesa (driBindContext) під XWayland
-      MESA_LOADER_DRIVER_OVERRIDE: zink
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${XAUTHORITY}:/tmp/.Xauthority:ro

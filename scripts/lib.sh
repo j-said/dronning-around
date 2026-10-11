@@ -103,12 +103,11 @@ logs() {
 # Копія Python-пакетів ROS 2 з образу в .pydeps/ — лише для підказок і перевірок у редакторі
 pydeps() {
     local id dir
-    id="$(docker create fpv-lab2:humble-harmonic)"
+    id="$(docker create fpv-lab2:jazzy-harmonic)"
     rm -rf "$LAB_DIR/.pydeps"
     mkdir -p "$LAB_DIR/.pydeps"
-    for dir in ros:/opt/ros/humble/local/lib/python3.10/dist-packages \
-        ros_site:/opt/ros/humble/lib/python3.10/site-packages \
-        ardupilot:/opt/ardu_ws/install/ardupilot_msgs/local/lib/python3.10/dist-packages; do
+    for dir in ros_site:/opt/ros/jazzy/lib/python3.12/site-packages \
+        ardupilot:/opt/ardu_ws/install/ardupilot_msgs/lib/python3.12/site-packages; do
         docker cp -q "$id:${dir#*:}" "$LAB_DIR/.pydeps/${dir%%:*}"
     done
     docker rm "$id" >/dev/null

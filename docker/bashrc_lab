@@ -1,5 +1,5 @@
 # Середовище лабораторної: підключається в кожній інтерактивній оболонці контейнера
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 source /opt/ardu_ws/install/setup.bash
 if [ -f /workspace/fpv_labs/install/setup.bash ]; then
     source /workspace/fpv_labs/install/setup.bash

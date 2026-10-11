@@ -1,0 +1,25 @@
+# Робочий простір ArduPilot для ROS 2 Jazzy.
+# За основу взято ros2_gz.repos з ArduPilot/ardupilot_gz (гілка main), який розрахований на Humble.
+# Відмінності: micro_ros_agent - гілка jazzy; ros_gz і sdformat_urdf не збираються з коду,
+# бо для Jazzy вони є в apt і вже зібрані з Gazebo Harmonic (пакунки ros-jazzy-gz-*-vendor).
+repositories:
+  ardupilot:
+    type: git
+    url: https://github.com/ArduPilot/ardupilot.git
+    version: master
+  ardupilot_gazebo:
+    type: git
+    url: https://github.com/ArduPilot/ardupilot_gazebo.git
+    version: ros2
+  ardupilot_gz:
+    type: git
+    url: https://github.com/ArduPilot/ardupilot_gz.git
+    version: main
+  ardupilot_sitl_models:
+    type: git
+    url: https://github.com/ArduPilot/SITL_Models.git
+    version: main
+  micro_ros_agent:
+    type: git
+    url: https://github.com/micro-ROS/micro-ROS-Agent.git
+    version: jazzy
