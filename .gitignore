@@ -1,0 +1,17 @@
+# артефакти складання colcon
+fpv_labs/build/
+fpv_labs/install/
+fpv_labs/log/
+__pycache__/
+*.pyc
+
+# журнали запусків
+logs/*.log
+
+# службові файли ArduPilot SITL (eeprom, tlog, dataflash)
+.sitl/
+
+*.pdf
+
+# копія Python-пакетів ROS 2 для редактора (make pydeps)
+.pydeps/

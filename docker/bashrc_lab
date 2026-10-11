@@ -1,0 +1,11 @@
+# Середовище лабораторної: підключається в кожній інтерактивній оболонці контейнера
+source /opt/ros/humble/setup.bash
+source /opt/ardu_ws/install/setup.bash
+if [ -f /workspace/fpv_labs/install/setup.bash ]; then
+    source /workspace/fpv_labs/install/setup.bash
+fi
+export GZ_VERSION=harmonic
+# URI виду package://<пакет>/models/... шукаються відносно каталогів share:
+# robot_state_publisher (sdformat_urdf) дивиться в SDF_PATH, Gazebo — в GZ_SIM_RESOURCE_PATH
+export SDF_PATH="${SDF_PATH:+$SDF_PATH:}/opt/ardu_ws/install/ardupilot_gazebo/share:/opt/ardu_ws/install/ardupilot_gz_description/share"
+export GZ_SIM_RESOURCE_PATH="${GZ_SIM_RESOURCE_PATH:+$GZ_SIM_RESOURCE_PATH:}/opt/ardu_ws/install/ardupilot_gazebo/share"

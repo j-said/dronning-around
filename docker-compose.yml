@@ -1,0 +1,32 @@
+# Змінні HOST_UID, HOST_GID, RENDER_GID, VIDEO_GID та XAUTHORITY виставляє scripts/lib.sh
+services:
+  sim:
+    image: fpv-lab2:humble-harmonic
+    build:
+      context: docker
+      args:
+        USER_UID: ${HOST_UID:-1000}
+        USER_GID: ${HOST_GID:-1000}
+    container_name: fpv_lab2
+    init: true
+    network_mode: host
+    ipc: host
+    environment:
+      DISPLAY: ${DISPLAY:-:0}
+      XAUTHORITY: /tmp/.Xauthority
+      QT_X11_NO_MITSHM: "1"
+      GZ_VERSION: harmonic
+      # OpenGL поверх Vulkan (Zink): зі штатним драйвером iris вікно Gazebo
+      # падає в Mesa (driBindContext) під XWayland
+      MESA_LOADER_DRIVER_OVERRIDE: zink
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XAUTHORITY}:/tmp/.Xauthority:ro
+      - .:/workspace
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "${RENDER_GID:-991}"
+      - "${VIDEO_GID:-44}"
+    working_dir: /workspace
+    command: sleep infinity
