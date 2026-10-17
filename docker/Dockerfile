@@ -89,6 +89,10 @@ RUN source /opt/ros/jazzy/setup.bash \
     --cmake-args -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     && rm -rf log
 
+RUN sudo apt-get update \
+    && sudo apt-get install -y --no-install-recommends python3-pandas \
+    && sudo rm -rf /var/lib/apt/lists/*
+
 COPY --chown=${USER_UID}:${USER_GID} bashrc_lab /home/${USER_NAME}/.bashrc_lab
 RUN echo "source ~/.bashrc_lab" >> /home/${USER_NAME}/.bashrc
 

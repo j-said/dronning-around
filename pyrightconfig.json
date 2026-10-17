@@ -4,7 +4,8 @@
   "extraPaths": [
     "fpv_labs/src",
     ".pydeps/ros_site",
-    ".pydeps/ardupilot"
+    ".pydeps/ardupilot",
+    ".pydeps/python"
   ],
   "pythonVersion": "3.12",
   "typeCheckingMode": "strict",

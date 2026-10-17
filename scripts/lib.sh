@@ -115,3 +115,12 @@ pydeps() {
 }
 
 [[ "${BASH_SOURCE[0]}" != "$0" ]] || "$@"
+    # Окремі пакети з dist-packages: каталоги цілком займають ~750 МБ
+    mkdir -p "$LAB_DIR/.pydeps/python"
+    for dir in /usr/local/lib/python3.12/dist-packages/pymavlink \
+        /usr/lib/python3/dist-packages/numpy \
+        /usr/lib/python3/dist-packages/matplotlib \
+        /usr/lib/python3/dist-packages/pandas; do
+        docker cp -q "$id:$dir" "$LAB_DIR/.pydeps/python/" 2>/dev/null \
+            || echo "Немає $dir в образі; перезберіть його: make image" >&2
+    done
