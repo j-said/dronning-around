@@ -15,3 +15,7 @@ logs/*.log
 
 # копія Python-пакетів ROS 2 для редактора (make pydeps)
 .pydeps/
+logs/lab_7/
+
+# QGroundControl AppImage (~190 МБ, завантажується з docs.qgroundcontrol.com)
+QGroundControl-x86_64.AppImage

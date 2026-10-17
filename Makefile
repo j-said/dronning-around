@@ -22,9 +22,13 @@ define HELP_FOOTER
 Змінні:
   ARGS         аргументи ros2 launch для start або docker compose build для image
   LAUNCH_FILE  launch-файл для start (типово iris_maze.launch.py)
+  QGC          1: start також запускає QGroundControl, stop закриває його
+               і переносить .tlog у logs/lab_7/Telemetry
 
 Приклади:
   make start ARGS=rviz:=false
+  make start ARGS=rviz:=false QGC=1
+  make stop QGC=1
   make run lab_2/plain_start
   make run lab_2/go_to
 endef
