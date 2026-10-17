@@ -13,6 +13,8 @@ from rclpy.node import Node
 from rclpy.task import Future
 from std_srvs.srv import Trigger
 
+from links.mavlink import MavlinkLink, Message, MissionItemReached, StatusText
+
 
 class End(Enum):
     DONE = auto()
@@ -33,13 +35,17 @@ type Position = tuple[float, float, float]
 class Drone(Node):
     TICK = 0.2
 
-    def __init__(self, name: str, mission: Mission) -> None:
+    def __init__(
+        self, name: str, mission: Mission, mavlink: MavlinkLink | None = None
+    ) -> None:
         super().__init__(name)
 
         self.mission = mission
+        self.mavlink = mavlink
 
         self.step: Step = next(iter(mission))
         self.entered_at = time.monotonic()
+        self.first_tick = True
         self.future: Future | None = None
 
         self.status: Status | None = None
@@ -74,11 +80,22 @@ class Drone(Node):
         self.odometry = message
         self.odometry_received_at = time.monotonic()
 
+    def on_mavlink(self, message: Message) -> None:
+        if isinstance(message, StatusText):
+            self.get_logger().info(f"ArduPilot: {message.text}")
+        elif isinstance(message, MissionItemReached):
+            self.get_logger().info(f"Mission item {message.seq} reached")
+
     def tick(self) -> None:
         if isinstance(self.step, End):
             return
 
+        if self.mavlink is not None:
+            for message in self.mavlink.poll():
+                self.on_mavlink(message)
+
         next_step = self.mission[self.step](self)
+        self.first_tick = False
 
         if next_step is not None:
             self.go(next_step)
@@ -87,10 +104,20 @@ class Drone(Node):
         self.get_logger().info(f"Step {self.step.name} -> {next_step.name}")
         self.step = next_step
         self.entered_at = time.monotonic()
+        self.first_tick = True
         self.future = None
 
     def time_in_step(self) -> float:
         return time.monotonic() - self.entered_at
+
+    def entering(self) -> bool:
+        return self.first_tick
+
+    def link(self) -> MavlinkLink:
+        if self.mavlink is None:
+            raise MissionError(f"Step {self.step.name} needs a MAVLink connection")
+
+        return self.mavlink
 
     def services_ready(self) -> bool:
         return (
@@ -102,11 +129,11 @@ class Drone(Node):
 
     def request(self, client: Client, message: object) -> Any | None:  # noqa: ANN401
         """Once per Step"""
-        if self.future is None:
+        if self.entering():
             self.future = client.call_async(message)
             return None
 
-        if not self.future.done():
+        if self.future is None or not self.future.done():
             return None
 
         return self.future.result()
@@ -139,9 +166,9 @@ class Drone(Node):
         self.velocity_publisher.publish(message)
 
 
-def run(name: str, mission: Mission) -> int:
+def run(name: str, mission: Mission, mavlink: MavlinkLink | None = None) -> int:
     rclpy.init()
-    drone = Drone(name, mission)
+    drone = Drone(name, mission, mavlink)
 
     try:
         while rclpy.ok() and not isinstance(drone.step, End):
@@ -153,6 +180,9 @@ def run(name: str, mission: Mission) -> int:
     finally:
         succeeded = drone.step is End.DONE
         drone.destroy_node()
+
+        if mavlink is not None:
+            mavlink.close()
 
         if rclpy.ok():
             rclpy.shutdown()

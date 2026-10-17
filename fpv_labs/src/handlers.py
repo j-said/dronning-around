@@ -5,9 +5,21 @@ from ardupilot_msgs.srv import ArmMotors, ModeSwitch, Takeoff
 from std_srvs.srv import Trigger
 
 from drone import Drone, Handler, MissionError, Position, Step
+from links.mavlink import (
+    MissionAcknowledgement,
+    MissionItem,
+    MissionRequest,
+    MissionRequestInt,
+    ParameterValue,
+    mission_accepted,
+)
 
+AUTO = 3
 GUIDED = 4
 LAND = 9
+
+MAVLINK_TIMEOUT = 30.0
+PARAMETER_TOLERANCE = 1e-3
 
 # /odometry arrives 50 times per second
 ODOMETRY_TIMEOUT = 0.5
@@ -23,6 +35,11 @@ MAX_CLIMB_SPEED = 0.5
 def require_armed(drone: Drone) -> None:
     if drone.status is None or not drone.status.armed:
         raise MissionError(f"Drone disarmed unexpectedly during {drone.step.name}")
+
+
+def fail_after(drone: Drone, message: str, timeout: float = MAVLINK_TIMEOUT) -> None:
+    if drone.time_in_step() > timeout:
+        raise MissionError(message)
 
 
 def distance_to_target(drone: Drone) -> float:
@@ -136,7 +153,7 @@ def arm(then: Step) -> Handler:
 
 def take_off(altitude: float, then: Step) -> Handler:
     def handler(drone: Drone) -> Step | None:
-        if drone.future is None:
+        if drone.entering():
             drone.home = drone.position()
             x, y, z = drone.home
             drone.target = (x, y, z + altitude)
@@ -297,6 +314,137 @@ def stop_at_target(
             f"Positioning error: {error:.3f} m (tolerance {tolerance:.2f} m)"
         )
         return then
+
+    return handler
+
+
+# --- MAVLink: parameters and missions ---
+
+
+def wait_for_mavlink(then: Step) -> Handler:
+    def handler(drone: Drone) -> Step | None:
+        link = drone.link()
+
+        if link.connected:
+            drone.get_logger().info(f"MAVLink: vehicle {link.system} on {link.address}")
+            return then
+
+        fail_after(drone, f"No MAVLink HEARTBEAT on {link.address}")
+        return None
+
+    return handler
+
+
+def set_parameter(name: str, value: float, then: Step) -> Handler:
+    def handler(drone: Drone) -> Step | None:
+        link = drone.link()
+
+        if drone.entering():
+            link.set_parameter(name, value)
+
+        for message in link.received(ParameterValue):
+            if (
+                message.param_id == name
+                and abs(message.param_value - value) < PARAMETER_TOLERANCE
+            ):
+                drone.get_logger().info(f"Parameter {name} = {message.param_value:g}")
+                return then
+
+        fail_after(drone, f"ArduPilot did not confirm {name} = {value:g}")
+        return None
+
+    return handler
+
+
+def upload_mission(items: list[MissionItem], then: Step) -> Handler:
+    plan = [MissionItem.home(), *items]
+
+    def handler(drone: Drone) -> Step | None:
+        link = drone.link()
+
+        if drone.entering():
+            link.send_mission_count(len(plan))
+
+        # ArduPilot asks for each item by its index, then acknowledges the whole plan
+        requests = link.received(MissionRequest) + link.received(MissionRequestInt)
+        for request in requests:
+            link.send_mission_item(request.seq, plan[request.seq])
+
+        for acknowledgement in link.received(MissionAcknowledgement):
+            if not mission_accepted(acknowledgement):
+                raise MissionError(
+                    f"ArduPilot rejected the mission: {acknowledgement.type}"
+                )
+
+            drone.get_logger().info(f"Mission uploaded: {len(items)} items")
+            return then
+
+        fail_after(drone, "ArduPilot did not answer during mission upload")
+        return None
+
+    return handler
+
+
+def start_mission(then: Step) -> Handler:
+    def handler(drone: Drone) -> Step | None:
+        drone.link().start_mission()
+        drone.get_logger().info("Mission start sent")
+        return then
+
+    return handler
+
+
+# --- flight controlled by ArduPilot (AUTO) ---
+
+
+def wait_for_airborne(then: Step, abort: Step, timeout: float = 30.0) -> Handler:
+    def handler(drone: Drone) -> Step | None:
+        require_armed(drone)
+
+        if drone.status is not None and drone.status.flying:
+            drone.get_logger().info("Airborne")
+            return then
+
+        if drone.time_in_step() > timeout:
+            drone.get_logger().error("Vehicle did not take off")
+            return abort
+
+        return None
+
+    return handler
+
+
+def follow_mission(then: Step, abort: Step, timeout: float = 600.0) -> Handler:
+    landed = wait_for_landing(then)
+
+    def handler(drone: Drone) -> Step | None:
+        next_step = landed(drone)
+        if next_step is not None:
+            return next_step
+
+        if drone.time_in_step() > timeout:
+            drone.get_logger().error("Mission did not finish in time")
+            return abort
+
+        x, y, z = drone.position()
+        drone.get_logger().info(
+            f"x={x:.1f}, y={y:.1f}, altitude {z:.1f} m, "
+            f"speed {drone.horizontal_speed():.1f} m/s",
+            throttle_duration_sec=2.0,
+        )
+        return None
+
+    return handler
+
+
+def wait_for_disarm(then: Step, timeout: float = 30.0) -> Handler:
+    def handler(drone: Drone) -> Step | None:
+        if drone.status is not None and not drone.status.armed:
+            drone.get_logger().info("Disarmed")
+            return then
+
+        fail_after(drone, "Vehicle landed but did not disarm", timeout)
+        return None
 
     return handler
 
